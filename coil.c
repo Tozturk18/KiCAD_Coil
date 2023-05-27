@@ -6,19 +6,20 @@
  * This script is created to create copper coil footprint traces for KiCAD.
  * This script allows users to enter the coil parameters while running the script on the
  * terminal window (command prompt) and generates coils by creating really small straight wire segments.
- * Currently, this script prints out the KiCAD Footprint code on to the terminal window, where the user can copy and paste it.
- * However, it is still under work so that the user can input the KiCAD Footprint while, 
- * and then this file will directly into it.
+ * This script creates a new file that contains the KiCAD Footprint code, from where the user can copy and paste it into the .kicad_pcb file.
  * 
  * Parameters:
- *  -   turns:          Determines the number of turns per coil
- *  -   innerRadius:    Determines the inner radius of the coil
- *  -   spacing:        Determines the spacing between each spiral in the coil
- *  -   start_X:        Determines the X value of the starting coordinate of the coil
- *  -   start_Y:        Determines the Y value of the starting coordinate of the coil
- *  -   layers:         Determines the number of layers, which determines the number of coils
- *  -   direction:      Determines the direction of the initial layer, hence the rest
- *  -   width:          Determines the width of the wire segments making up the coil
+ *  -   -f:         Determines the file address to write footprint code into
+ *  -   -t:         Determines the number of turns per coil
+ *  -   -i:         Determines the inner radius of the coil
+ *  -   -s:         Determines the spacing between each spiral in the coil
+ *  -   -x:         Determines the X value of the starting coordinate of the center of the coil
+ *  -   -y:         Determines the Y value of the starting coordinate of the center of the coil
+ *  -   -l:         Determines the number of layers, which determines the number of coils
+ *  -   -d:         Determines the direction of the initial layer, hence the rest
+ *  -   -w:         Determines the width of the wire segments making up the coil
+ *  -   -n:         Determines the netID of the footprint file
+ *  -   -v:         Determines the via size
  */
 
 
@@ -26,19 +27,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 /* --- End of IMPORTS --- */
+
+/* --- User Defined Functions --- */
+
+// Check if the arguments entered by the user is correct
+// If all correct, returns the number for which parameter to populate
+// If wrong return 0 and display an error message
+int argvChecker(char *argv[]);
+/* --- End of User Defined Functions --- */
 
 /* --- MAIN --- */
 int main(int argc, char *argv[]) {
 
     /* --- FAILSAFE --- */
-    if(argc > 9) {
-        printf("Usage: %s turns innerRadius spacing start_X start_Y layers direction(1 or -1) width(default 0.25)) \n",argv[0]);
+    // Check if correct amount of arguments entered
+    if(argc % 2 == 0) {
+        printf("Usage: %s flags parameters\n\r",argv[0]);
+        printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
         return 1;
     }
     /* --- End of FAILSAFE --- */
 
     /* --- CONSTANTS --- */
+    // kicad_pcb file address on your computer.
+    // This is footprint file to overwrite the coil into
+    char* filename = "./coil_text";
+
     // Amount of Turns around the center
     float turns = 10;           // Default 10 rotations
 
@@ -60,59 +76,91 @@ int main(int argc, char *argv[]) {
 
     // Direction of Rotation
     int direction = 1;          // Default 1 (CounterClockWise - CCW), -1 would mean CW
+
+    // netID of the kicad_pcb file
+    int netID = 0;              // Default (net 0 "")
+
+    // Via Size
+    float viaSize = 0.8;        // Defualt via size 0.8
     /* --- End of CONSTANTS --- */
 
     /* --- ARGUMENTS --- */
-    /* The Switch Statement does not have breaks because it allows the user to be able to
-     * put a range of inputs. This allows for shorter and more consize code.
-     * If the user enters ./spiral.o 1 That will change only the Turns, but if the user enters
-     * ./spiral.o 1 1 That will change the turns and the inner radius. 
+    /* Iterate through each of the users arguments and make sure that the user has enetered
+     * the arguments using the appopriate flags. The order of the flag and parameter pair does not matter.
+     * The user can enter any flag followed by the appopriate parameter in any order.
+     * For example: ./coil.o -w 0.5 -i 10 -f Spiral.kicad_pcb
+     * This will create a coil with default parameters except with 0.5 width (whichever unit KiCAD is using),
+     * 10 inner radius, and write the results to a file called Spiral.kicad_pcb.
      */
-    switch (argc){
-        case 9:
-            // Run all the Switch Statement below until the break if 9 arguments entered
-            width = atof(argv[8]);      // Update the Width
-            // Failsafe for width
-            if (width < 0) { width = 0.25;  }
-        case 8:
-            // Run all the Switch Statement below until the break if 8 arguments entered
-            direction = atoi(argv[7]);  // Update the Direction
-            // Failsafe for direction
-            if (direction != 1 || direction != -1) { direction = 1; }
-        case 7:
-            // Run all the Switch Statement below until the break if 7 arguments entered
-            layers = atoi(argv[6]);     // Update the Layers
-            // Failsafe for layers
-            if (layers < 1) { layers = 1; }
-        case 6:
-            // Run all the Switch Statement below until the break if 6 arguments entered
-            startX = atof(argv[4]);     // Update the Start Coordinate X value
-            startY = atof(argv[5]);     // Update the Start Coordinate Y value
-        case 4:
-            // Run all the Switch Statement below until the break if 4 arguments entered
-            spacing = atof(argv[3]) + width;    // Update the Spacing
-            // Failsafe for spacing
-            if (spacing == 0) { spacing = 0.0001; }
-        case 3:
-            // Run all the Switch Statement below until the break if 3 arguments entered
-            innerRadius = atof(argv[2]);// Update the Inner Radius
-            // Failsafe for innerRadius
-            if (innerRadius < 0) { innerRadius = 0; }
-        case 2:
-            // Run all the Switch Statement below until the break if 2 arguments entered
-            turns = atof(argv[1]);      // Update the Turns
-            // Failsafe for turns
-            if (turns < 1) { turns = 1; }
-            break;
-        case 5:
-            // If 5 arguments entered then, the start position is entered wrongly. Send an error message
-            printf("Usage: %s turns innerRadius spacing start_X start_Y layers direction(1 or -1) width(default 0.25)) \n",argv[0]);
-            return 1;
+
+    // Iterate through each argument and check which parameter to populate
+    for (int i = 1; i < argc; i++) {
+        // Check which parameter user wants to populate
+        if (!strcmp(argv[i],"-f")) {
+            filename = argv[i+1];                                       // Update the filename
+
+        } else if (!strcmp(argv[i],"-t")) {
+            turns = atof(argv[i+1]);                                    // Update the Turns
+            if (turns < 1) { turns = 1; }                               // Failsafe for turns
+
+        } else if (!strcmp(argv[i],"-i")) {
+            innerRadius = atof(argv[i+1]);                              // Update the Inner Radius
+            if (innerRadius < 0) { innerRadius = 0; }                   // Failsafe for innerRadius
+
+        } else if (!strcmp(argv[i],"-s")) {
+            spacing = atof(argv[i+1]) + width;                          // Update the Spacing
+            if (spacing <= 0) { spacing = width; }                      // Failsafe for spacing
+
+        } else if (!strcmp(argv[i],"-x")) {
+            startX = atof(argv[i+1]);                                   // Update the Start Coordinate X value
+
+        } else if (!strcmp(argv[i],"-y")) {
+            startY = atof(argv[i+1]);                                   // Update the Start Coordinate Y value
+
+        } else if (!strcmp(argv[i],"-l")) {
+            layers = atoi(argv[i+1]);                                   // Update the Layers
+            if (layers < 1) { layers = 1; }                             // Failsafe for layers
+
+        } else if (!strcmp(argv[i],"-d")) {
+            direction = atoi(argv[i+1]);                                // Update the Direction
+            if (direction != 1 || direction != -1) { direction = 1; }   // Failsafe for direction
+
+        } else if (!strcmp(argv[i],"-w")) {
+            width = atof(argv[i+1]);                                    // Update the Width
+            if (width < 0) { width = 0.25; }                            // Failsafe for width
+
+        } else if (!strcmp(argv[i],"-n")) {
+            netID = atoi(argv[i+1]);                                    // Update the netID
+            if (netID < 0) { netID = 0; }                               // Failsafe for netID
+        } else if (i % 2 == 1) {
+            // Print out an error message
+            printf("\n\rThe program has encountered an error in the parameters.\nThe program will continue with all the correct parameters.\nPlease make sure that all parameters.\n");
+            printf("Usage: %s flags parameters\n\r",argv[0]);
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+        }
     }
+
     /* --- End of ARGUMENTS --- */
 
+    /* --- kicad_pcb Footprint File --- */
+    // Create a file variable
+    FILE *fp;
+
+    // Open the footprint file
+    fp = fopen(filename,"w");
+
+    // Check if the file opened
+    if (fp == NULL) {
+        printf("Error opening kicad_pcb file! kicad_pcb file address entered wrong!\n\r");   
+        return(1);             
+    }
+
+    // Set the cursor to the very beginning of the file
+    fseek(fp, 0, SEEK_SET);
+    /* --- End of kicad_pcb Footprint File --- */
+
     /* --- Start & End Positions ---  */
-    float start = innerRadius;              // Start Position
+    float start = innerRadius + viaSize;              // Start Position
     float end = turns * spacing + start;    // End Position
     /* --- End of Start & End Positions --- */
 
@@ -157,31 +205,45 @@ int main(int argc, char *argv[]) {
             xPos[i][j] = direction * (cos(angle)*cos(2*M_PI*x/spacing)*x + sin(angle)*sin(2*M_PI*x/spacing)*x) + startX;
             yPos[i][j] = direction * pow(-1, i) * (-sin(angle)*cos(2*M_PI*x/spacing)*x + cos(angle)*sin(2*M_PI*x/spacing)*x) + startY;
         }
-
     }
     /* --- End of GENERATE COIL --- */
 
+    /* --- WRITE --- */
+    printf("Start writing into %s\n\r", filename);
 
-    /* --- DISPLAY --- */
     // Iterate through each copper layer
     for (int i = 0; i < layers; i++) {
         // Iterate through each position on the coil
         for (int j = 0; j < (int)((end-start)/step); j++) {
             // Print out the wire segments according to KiCAD Footprint File.
 
+            // Check for copper layers
             if (i == 0) {
-                printf("(segment (start %f %f) (end %f %f) (width %f) (layer \"F.Cu\") (net 0) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n\r", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, j, i);
+                fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"F.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, netID, j, i);
+            } else if (i == layers-1) {
+                fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"B.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, netID, j, i);
             } else {
-                printf("(segment (start %f %f) (end %f %f) (width %f) (layer \"B.Cu\") (net 0) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n\r", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, j, i);
+                fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, i, netID, j, i);
             }
         }
     }
-    /* --- End of DISPLAY --- */
 
     // Add vias
-    printf("(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net 0) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n\r", xPos[0][0], yPos[0][0], 0);
-    
+    fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] - (viaSize/2) + (width/2), yPos[0][0], netID, 0);
+    printf("End of writing.\n\r");
+    /* --- End of WRITE --- */
+
+    /* --- DISPLAY --- */
+    if (layers > 2) {
+        printf("\n\rYou have selected more than 2 copper layers.\n\rPlease make sure to change the number of copper layers on KiCAD and make sure the copper layer names matches.\n\n\r");
+    }
+    /* --- End of DISPLAY --- */
+
+    // Close the File
+    fclose(fp);
+
     // End script
     return 0;
 }
 /* --- End of MAIN --- */
+
