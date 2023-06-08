@@ -164,8 +164,6 @@ int main(int argc, char *argv[]) {
     float end = turns * spacing + start;    // End Position
     /* --- End of Start & End Positions --- */
 
-    printf("\nstart:\t%f\nend:\t%f\n",start,end);
-
     /* --- ANGLE --- */
     // Calculate the angle difference between the original spiral and the spaced one
 
@@ -176,8 +174,6 @@ int main(int argc, char *argv[]) {
     // Find the start coordinates of the spaced spiral
     float xSpaced = cos(2*M_PI*start/spacing)*start;
     float ySpaced = sin(2*M_PI*start/spacing)*start;
-
-    printf("\nxSpaced:\t%f\nySpaced:\t%f\n",xSpaced,ySpaced);
 
     // Create an angle variable to hold the angle
     float angle = 0.00;
@@ -191,15 +187,14 @@ int main(int argc, char *argv[]) {
     }
     /* --- End of ANGLE --- */
 
-    printf("Damn:\t%f\n",( (xInit * xSpaced) + (yInit * ySpaced) ));
-    printf("\nAngle:\t%f\n",angle);
-
-    /* --- Update Variables for Coil Generation --- */
-    // This is done to accomodate for all the kiCAD interfrences with the infinidecimally thin spiral
-    //spacing += width;    // Add width to the spacing
-    /* --- End of Update Variables for Coil Generation --- */
-
     /* --- GENERATE COIL --- */
+
+    printf("\n --- Parameters Entered: --- \n");
+    printf("turns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",turns,innerRadius,spacing-width,startX,startY,layers,direction,width,netID,viaSize);
+    printf(" --------------------------- \n");
+
+    printf("\n --- Generating Coils --- \n");
+
     // Step size of the coil generator
     float step = ( 0.01 / (innerRadius/2) );
 
@@ -207,8 +202,12 @@ int main(int argc, char *argv[]) {
     float xPos[layers][(int)((end-start)/step + 1)];
     float yPos[layers][(int)((end-start)/step + 1)];
 
+    
+
     // Iterate through each copper layer
     for (int i = 0; i < layers; i++) {
+
+        printf("Progress:\e[s");
 
         // Loop through each step to find the position
         for (int j = 0; j < (int)((end-start)/step + 1); j++) {
@@ -218,16 +217,24 @@ int main(int argc, char *argv[]) {
             // Use the spiral formula 
             xPos[i][j] = direction * (cos(angle)*cos(2*M_PI*x/spacing)*x + sin(angle)*sin(2*M_PI*x/spacing)*x) + startX;
             yPos[i][j] = direction * pow(-1, i) * (-sin(angle)*cos(2*M_PI*x/spacing)*x + cos(angle)*sin(2*M_PI*x/spacing)*x) + startY;
+
+            printf(" %d %2d (%.2f%%)\e[u", i, j, roundf(((float) j / ((end-start)/step + 1)) * 100));
+
         }
+
+        printf("\n");
     }
+
+    printf(" ------------------------ \n");
+    printf("End of generating coils\n");
     /* --- End of GENERATE COIL --- */
 
     /* --- WRITE --- */
-    printf("\nParameters Entered:\nturns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",turns,innerRadius,spacing-width,startX,startY,layers,direction,width,netID,viaSize);
-    printf("Start writing into %s\n\r", filename);
+    printf("\n --- Writing into File --- \n");
 
     // Iterate through each copper layer
     for (int i = 0; i < layers; i++) {
+        printf("Progress:\e[s");
         // Iterate through each position on the coil
         for (int j = 0; j < (int)((end-start)/step); j++) {
             // Print out the wire segments according to KiCAD Footprint File.
@@ -240,11 +247,16 @@ int main(int argc, char *argv[]) {
             } else {
                 fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, i, netID, j, i);
             }
+
+            printf(" %d %2d (%.2f%%)\e[u", i, j, roundf(((float) j / ((end-start)/step)) * 100));
         }
+        printf("\n");
     }
 
     // Add vias
     fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] - (viaSize/2) + (width/2), yPos[0][0], netID, 0);
+    
+    printf(" ------------------------- \n");
     printf("End of writing.\n\n\r");
     /* --- End of WRITE --- */
 
