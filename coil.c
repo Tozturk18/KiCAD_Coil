@@ -77,6 +77,9 @@ int main(int argc, char *argv[]) {
     // Direction of Rotation
     int direction = 1;          // Default 1 (CounterClockWise - CCW), -1 would mean CW
 
+    // Rotation
+    float rotate = 0;             // Default 0 radians, rotates counterclockwise (units of radians. Not degrees!)
+
     // netID of the kicad_pcb file
     int netID = 0;              // Default (net 0 "")
 
@@ -108,8 +111,8 @@ int main(int argc, char *argv[]) {
             if (innerRadius < 0) { innerRadius = 0; }                   // Failsafe for innerRadius
 
         } else if (!strcmp(argv[i],"-s")) {
-            spacing = atof(argv[i+1]) + width;                                  // Update the Spacing
-            if (spacing < 0) { spacing = width; }                           // Failsafe for spacing
+            spacing = atof(argv[i+1]) + width;                          // Update the Spacing
+            if (spacing < 0) { spacing = width; }                       // Failsafe for spacing
 
         } else if (!strcmp(argv[i],"-x")) {
             startX = atof(argv[i+1]);                                   // Update the Start Coordinate X value
@@ -123,7 +126,10 @@ int main(int argc, char *argv[]) {
 
         } else if (!strcmp(argv[i],"-d")) {
             direction = atoi(argv[i+1]);                                // Update the Direction
-            if (direction != 1 || direction != -1) { direction = 1; }   // Failsafe for direction
+            if (direction != 1 && direction != -1) { direction = 1; }   // Failsafe for direction
+
+        } else if (!strcmp(argv[i],"-r")) {
+            rotate = atof(argv[i+1]);                                   // Update the Direction
 
         } else if (!strcmp(argv[i],"-w")) {
             width = atof(argv[i+1]);                                    // Update the Width
@@ -132,11 +138,12 @@ int main(int argc, char *argv[]) {
         } else if (!strcmp(argv[i],"-n")) {
             netID = atoi(argv[i+1]);                                    // Update the netID
             if (netID < 0) { netID = 0; }                               // Failsafe for netID
+
         } else if (i % 2 == 1) {
             // Print out an error message
             printf("\n\rThe program has encountered an error in the parameters.\nThe program will continue with all the correct parameters.\nPlease make sure that all parameters.\n");
             printf("Usage: %s flags parameters\n\r",argv[0]);
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t (Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
         }
     }
 
@@ -160,7 +167,7 @@ int main(int argc, char *argv[]) {
     /* --- End of kicad_pcb Footprint File --- */
 
     /* --- Start & End Positions ---  */
-    float start = innerRadius + viaSize;    // Start Position
+    float start = innerRadius + viaSize/2;    // Start Position
     float end = turns * spacing + start;    // End Position
     /* --- End of Start & End Positions --- */
 
@@ -168,12 +175,12 @@ int main(int argc, char *argv[]) {
     // Calculate the angle difference between the original spiral and the spaced one
 
     // Find the start coordinates of the initial spiral
-    float xInit = start;
+    float xInit = end;
     float yInit = 0;
 
     // Find the start coordinates of the spaced spiral
-    float xSpaced = cos(2*M_PI*start/spacing)*start;
-    float ySpaced = sin(2*M_PI*start/spacing)*start;
+    float xSpaced = cos(2*M_PI*end/spacing)*end;
+    float ySpaced = sin(2*M_PI*end/spacing)*end;
 
     // Create an angle variable to hold the angle
     float angle = 0.00;
@@ -185,24 +192,24 @@ int main(int argc, char *argv[]) {
     } else {
         angle = acosf( ( (xInit * xSpaced) + (yInit * ySpaced) ) / ( sqrt( powf(xInit,2) + powf(yInit,2) ) * sqrt( powf(xSpaced,2) + powf(ySpaced,2) ) ) );
     }
+
+    // Adjust the angle according to user's rotation preference
+    angle += rotate;    // In radians
     /* --- End of ANGLE --- */
 
     /* --- GENERATE COIL --- */
-
     printf("\n --- Parameters Entered: --- \n");
-    printf("turns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",turns,innerRadius,spacing-width,startX,startY,layers,direction,width,netID,viaSize);
+    printf("turns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nRotation:\t%.3f\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",turns,innerRadius,spacing-width,startX,startY,layers,direction,rotate,width,netID,viaSize);
     printf(" --------------------------- \n");
 
     printf("\n --- Generating Coils --- \n");
 
     // Step size of the coil generator
-    float step = ( 0.01 / (innerRadius/2) );
+    float step = ( 0.01 / (start) );
 
     // Initialize the Position Arrays
     float xPos[layers][(int)((end-start)/step + 1)];
     float yPos[layers][(int)((end-start)/step + 1)];
-
-    
 
     // Iterate through each copper layer
     for (int i = 0; i < layers; i++) {
@@ -210,16 +217,15 @@ int main(int argc, char *argv[]) {
         printf("Progress:\e[s");
 
         // Loop through each step to find the position
-        for (int j = 0; j < (int)((end-start)/step + 1); j++) {
+        for (int j = 0; j < (int)((end-start)/step + 2); j++) {
 
             float x = j*step + start;   // Respective position
 
             // Use the spiral formula 
             xPos[i][j] = direction * (cos(angle)*cos(2*M_PI*x/spacing)*x + sin(angle)*sin(2*M_PI*x/spacing)*x) + startX;
-            yPos[i][j] = direction * pow(-1, i) * (-sin(angle)*cos(2*M_PI*x/spacing)*x + cos(angle)*sin(2*M_PI*x/spacing)*x) + startY;
+            yPos[i][j] = pow(-1, i) * (-sin(angle)*cos(2*M_PI*x/spacing)*x + cos(angle)*sin(2*M_PI*x/spacing)*x) + startY;
 
             printf(" %d %2d (%.2f%%)\e[u", i, j, roundf(((float) j / ((end-start)/step + 1)) * 100));
-
         }
 
         printf("\n");
