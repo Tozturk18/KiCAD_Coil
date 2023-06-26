@@ -1,6 +1,6 @@
 /* coil.c
  * Created by Ozgur Tuna Ozturk on 4 May 2023
- * Last updated on 25 May 2023
+ * Last updated on 20 June 2023
  * 
  * Description:
  * This script is created to create copper coil footprint traces for KiCAD.
@@ -17,6 +17,7 @@
  *  -   -y:         Determines the Y value of the starting coordinate of the center of the coil
  *  -   -l:         Determines the number of layers, which determines the number of coils
  *  -   -d:         Determines the direction of the initial layer, hence the rest
+ *  -   -r:         Determines the angle of rotation in radians to turn the coil counterclockwise
  *  -   -w:         Determines the width of the wire segments making up the coil
  *  -   -n:         Determines the netID of the footprint file
  *  -   -v:         Determines the via size
@@ -45,7 +46,7 @@ int main(int argc, char *argv[]) {
     // Check if correct amount of arguments entered
     if(argc % 2 == 0) {
         printf("Usage: %s flags parameters\n\r",argv[0]);
-        printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+        printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
         return 1;
     }
     /* --- End of FAILSAFE --- */
@@ -56,35 +57,35 @@ int main(int argc, char *argv[]) {
     char* filename = "./coil_text";
 
     // Amount of Turns around the center
-    float turns = 10;           // Default 10 rotations
+    float turns = 10;               // Default 10 rotations
 
     // Inner Radius of the spiral
-    float innerRadius = 0.00;   // Default 0 inner radius
+    float innerRadius = 0.00;       // Default 0 inner radius
 
     // Width of the copper trace
-    float width = 0.25;         // Default 0.25 width
+    float width = 0.25;             // Default 0.25 width
 
     // Spacing between each curl
-    float spacing = 0.25 + width;       // Default 0.25 spacing
+    float spacing = 0.25 + width;   // Default 0.25 spacing
 
     // Initial Start Coordinates
-    float startX = 0.00;        // Default X: 0.00
-    float startY = 0.00;        // Default Y: 0.00
+    float startX = 0.00;            // Default X: 0.00
+    float startY = 0.00;            // Default Y: 0.00
 
     // Amount of Layers
-    int layers = 1;             // Default 1 Layer (F.Cu)
+    int layers = 1;                 // Default 1 Layer (F.Cu)
 
     // Direction of Rotation
-    int direction = 1;          // Default 1 (CounterClockWise - CCW), -1 would mean CW
+    int direction = 1;              // Default 1 (CounterClockWise - CCW), -1 would mean CW
 
     // Rotation
-    float rotate = 0;             // Default 0 radians, rotates counterclockwise (units of radians. Not degrees!)
+    float rotate = 0.00;            // Default 0 radians, rotates counterclockwise (units of radians. Not degrees!)
 
     // netID of the kicad_pcb file
-    int netID = 0;              // Default (net 0 "")
+    int netID = 0;                  // Default (net 0 "")
 
     // Via Size
-    float viaSize = 0.8;        // Defualt via size 0.8
+    float viaSize = 0.8;            // Defualt via size 0.8
     /* --- End of CONSTANTS --- */
 
     /* --- ARGUMENTS --- */
@@ -129,7 +130,7 @@ int main(int argc, char *argv[]) {
             if (direction != 1 && direction != -1) { direction = 1; }   // Failsafe for direction
 
         } else if (!strcmp(argv[i],"-r")) {
-            rotate = atof(argv[i+1]);                                   // Update the Direction
+            rotate = atof(argv[i+1]);                                   // Update the Rotate
 
         } else if (!strcmp(argv[i],"-w")) {
             width = atof(argv[i+1]);                                    // Update the Width
@@ -139,11 +140,16 @@ int main(int argc, char *argv[]) {
             netID = atoi(argv[i+1]);                                    // Update the netID
             if (netID < 0) { netID = 0; }                               // Failsafe for netID
 
+        } else if (!strcmp(argv[i],"-h")) {
+            // Print out help statement
+            printf("Usage: %s flags parameters\n\r",argv[0]);
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+
         } else if (i % 2 == 1) {
             // Print out an error message
             printf("\n\rThe program has encountered an error in the parameters.\nThe program will continue with all the correct parameters.\nPlease make sure that all parameters.\n");
             printf("Usage: %s flags parameters\n\r",argv[0]);
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t (Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
         }
     }
 
@@ -167,7 +173,7 @@ int main(int argc, char *argv[]) {
     /* --- End of kicad_pcb Footprint File --- */
 
     /* --- Start & End Positions ---  */
-    float start = innerRadius + viaSize/2;    // Start Position
+    float start = innerRadius + viaSize*ceilf((float)(layers-1)/2);    // Start Position
     float end = turns * spacing + start;    // End Position
     /* --- End of Start & End Positions --- */
 
@@ -179,8 +185,8 @@ int main(int argc, char *argv[]) {
     float yInit = 0;
 
     // Find the start coordinates of the spaced spiral
-    float xSpaced = cos(2*M_PI*end/spacing)*end;
-    float ySpaced = sin(2*M_PI*end/spacing)*end;
+    float xSpaced = cos(2*M_PI*xInit/spacing)*xInit;
+    float ySpaced = sin(2*M_PI*xInit/spacing)*xInit;
 
     // Create an angle variable to hold the angle
     float angle = 0.00;
@@ -205,27 +211,51 @@ int main(int argc, char *argv[]) {
     printf("\n --- Generating Coils --- \n");
 
     // Step size of the coil generator
-    float step = ( 0.01 / (start) );
+    float step = ( (float)0.01 / (start) );
+
+    // Calculate the angle between the via positions for different layer combinations
+    float viaAngle = ( 2*M_PI ) / ( ceilf( (float)(layers-1)/2 ) );
 
     // Initialize the Position Arrays
-    float xPos[layers][(int)((end-start)/step + 1)];
-    float yPos[layers][(int)((end-start)/step + 1)];
+    float xPos[layers][(int)((end+(layers-1)*viaAngle*(spacing)/(2*M_PI)-start)/step + 1)];
+    float yPos[layers][(int)((end+(layers-1)*viaAngle*(spacing)/(2*M_PI)-start)/step + 1)];
+
+    float x, coilInitX, coilInitY, coilFixedX, coilFixedY, coilAngledX, coilAngledY;
+
+    int layerCode = 0;
+    int angleCode = 0;
 
     // Iterate through each copper layer
     for (int i = 0; i < layers; i++) {
 
+        // Print out progress tag
         printf("Progress:\e[s");
 
+        if (i > 1) {
+            layerCode = powf( 2, floor( (float)i/2 - 0.5 ) );
+        }
+        
         // Loop through each step to find the position
-        for (int j = 0; j < (int)((end-start)/step + 2); j++) {
+        for (int j = 0; j < (int)(((end+(layerCode)*viaAngle*(spacing)/(2*M_PI))-start)/step + 1); j++) {
 
-            float x = j*step + start;   // Respective position
+            x = j*step + start;   // Respective position
+
+            coilInitX = cos(2*M_PI*x/spacing)*x;
+            coilInitY = sin(2*M_PI*x/spacing)*x;
+
+            coilFixedX = direction * (cos(angle)*coilInitX + sin(angle)*coilInitY);
+            coilFixedY = pow(-1, i) * (-sin(angle)*coilInitX + cos(angle)*coilInitY);
+
+            angleCode = floor( i/2 );
+
+            coilAngledX = cos((angleCode)*viaAngle)*coilFixedX + sin((angleCode)*viaAngle)*coilFixedY;
+            coilAngledY = -sin((angleCode)*viaAngle)*coilFixedX + cos((angleCode)*viaAngle)*coilFixedY;
 
             // Use the spiral formula 
-            xPos[i][j] = direction * (cos(angle)*cos(2*M_PI*x/spacing)*x + sin(angle)*sin(2*M_PI*x/spacing)*x) + startX;
-            yPos[i][j] = pow(-1, i) * (-sin(angle)*cos(2*M_PI*x/spacing)*x + cos(angle)*sin(2*M_PI*x/spacing)*x) + startY;
-
-            printf(" %d %2d (%.2f%%)\e[u", i, j, roundf(((float) j / ((end-start)/step + 1)) * 100));
+            xPos[i][j] = direction * coilAngledX + startX;
+            yPos[i][j] = coilAngledY + startY;
+            // Print out the progress
+            printf(" %d %2d (%.2f%%)\e[u", i+1, j, roundf(((float) j / (((end+(layerCode)*viaAngle*(spacing)/(2*M_PI))-start)/step + 1)) * 100));
         }
 
         printf("\n");
@@ -240,9 +270,15 @@ int main(int argc, char *argv[]) {
 
     // Iterate through each copper layer
     for (int i = 0; i < layers; i++) {
+        // Print out progress tag
         printf("Progress:\e[s");
+
+        if (i > 1) {
+            layerCode = powf( 2, floor( (float)i/2 - 0.5 ) );
+        }
+
         // Iterate through each position on the coil
-        for (int j = 0; j < (int)((end-start)/step); j++) {
+        for (int j = 0; j < (int)(((end+(layerCode)*viaAngle*(spacing)/(2*M_PI))-start)/step); j++) {
             // Print out the wire segments according to KiCAD Footprint File.
 
             // Check for copper layers
@@ -253,14 +289,32 @@ int main(int argc, char *argv[]) {
             } else {
                 fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, i, netID, j, i);
             }
-
-            printf(" %d %2d (%.2f%%)\e[u", i, j, roundf(((float) j / ((end-start)/step)) * 100));
+            // Print out the progress
+            printf(" %d %2d (%.2f%%)\e[u", i+1, j, roundf(((float) j / (((end+(layerCode)*viaAngle*(spacing)/(2*M_PI))-start)/step)) * 100));
         }
         printf("\n");
+
     }
 
-    // Add vias
-    fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] - (viaSize/2) + (width/2), yPos[0][0], netID, 0);
+    /*float unitVector[2] = {xPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2))), yPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2)))};
+
+    if (layers == 1) {
+        
+        // Add vias
+        fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] + ( unitVector[0] * (-viaSize/2 + width/2) ), yPos[0][0] + ( unitVector[1] * (-viaSize/2 + width/2) ), netID, 0);
+
+    } else {
+
+        
+
+        for (int i = 0; i < layers-1; i++) {
+            // Add vias
+            fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] + ( unitVector[0] * (-viaSize/2 + width/2) ), yPos[0][0] + ( unitVector[1] * (-viaSize/2 + width/2) ), netID, 0);
+        }
+
+    }*/
+
+    
     
     printf(" ------------------------- \n");
     printf("End of writing.\n\n\r");
