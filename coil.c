@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
 
     }
 
-    /*float unitVector[2] = {xPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2))), yPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2)))};
+    float unitVector[2] = {xPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2))), yPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2)))};
 
     if (layers == 1) {
         
@@ -311,10 +311,15 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i < layers-1; i++) {
             // Add vias
-            fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] + ( unitVector[0] * (-viaSize/2 + width/2) ), yPos[0][0] + ( unitVector[1] * (-viaSize/2 + width/2) ), netID, 0);
+            if ((i+1) % 2) {
+                unitVector[0] = xPos[i][0]/(sqrt(powf(xPos[i][0],2) + powf(yPos[i][0],2)));
+                unitVector[1] = yPos[i][0]/(sqrt(powf(xPos[i][0],2) + powf(yPos[i][0],2)));
+                fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[i][0] + ( unitVector[0] * (-viaSize*2/3 + width/2) ), yPos[i][0] + ( unitVector[1] * (-viaSize*2/3 + width/2) ), netID, 0);
+            }
+            
         }
 
-    }*/
+    }
 
     
     
