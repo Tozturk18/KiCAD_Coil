@@ -268,6 +268,8 @@ int main(int argc, char *argv[]) {
     /* --- WRITE --- */
     printf("\n --- Writing into File --- \n");
 
+    layerCode = 0;
+
     // Iterate through each copper layer
     for (int i = 0; i < layers; i++) {
         // Print out progress tag
