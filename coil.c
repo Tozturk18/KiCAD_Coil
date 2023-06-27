@@ -182,7 +182,24 @@ int main(int argc, char *argv[]) {
     /* --- End of kicad_pcb Footprint File --- */
 
     /* --- Start & End Positions ---  */
-    float start = innerRadius + viaSize*ceilf((float)(layers-1)/2);    // Start Position
+
+    // Create a variable to hold the number of Vias inside the coil.
+    int innerVias = 1;  // At least one layer means at least one via
+
+    // Calculate the number of vias needed inside the coil for the amount of copper layers
+    layers > 2 ? innerVias = ceilf((float)(layers-0.5)/2): innerVias;
+
+    // Calculate the amount of vias needed outside of the coils for the amount of copper layers
+    int outerVias = layers - innerVias;
+
+    // Calculate the gap between the vias
+    float viaGap = 0.5; // With one via, only 1/2 ratio is needed
+
+    // More than one layers require at least 2/3 ratio
+    layers > 2 ? viaGap = 0.67 : viaGap;
+
+    // Calculate the start and end factors
+    float start = innerRadius + viaSize*innerVias*viaGap;    // Start Position
     float end = turns * spacing + start;    // End Position
     /* --- End of Start & End Positions --- */
 
@@ -228,7 +245,7 @@ int main(int argc, char *argv[]) {
     float step = ( (float)0.01 / (start) );
 
     // Calculate the angle between the via positions for different layer combinations
-    float viaAngle = ( 2*M_PI ) / ( ceilf( (float)(layers-0.5)/2 ) );
+    float viaAngle = ( 2*M_PI ) / ( innerVias );
 
     // Initialize the Position Arrays
     float xPos[layers][(int)((end+(layers-1)*viaAngle*(spacing)/(2*M_PI)-start)/step + 1)];
@@ -325,7 +342,7 @@ int main(int argc, char *argv[]) {
         fprintf(fp,"(via (at %f %f) (size 0.8) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] + ( unitVector[0] * (-viaSize/2 + width/2) ), yPos[0][0] + ( unitVector[1] * (-viaSize/2 + width/2) ), netID, 0);
 
     } else {
-        for (int i = 0; i < layers-1; i++) {
+        for (int i = 0; i < layers; i++) {
             // Add vias
             if ((i+1) % 2) {
                 // Adjust the unit vector for the new via position
