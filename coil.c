@@ -40,9 +40,11 @@ int main(int argc, char *argv[]) {
 
     // Check if correct amount of arguments entered
     if(argc % 2 == 0) {
-        printf("Usage: %s flags parameters\n\r",argv[0]);
-        printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
-        return 1;
+        if (strcmp(argv[1],"-h")) {
+            printf("Usage: %s flags parameters\n\r",argv[0]);
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+            return 1;
+        }
     }
     /* --- End of FAILSAFE --- */
 
@@ -147,7 +149,7 @@ int main(int argc, char *argv[]) {
             // Print out help statement
             printf("Usage: %s flags parameters\n\r",argv[0]);
             printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
-
+            return 0;
         } else if (i % 2 == 1) {
             // Print out an error message
             printf("\n\rThe program has encountered an error in the parameters.\nThe program will continue with all the correct parameters.\nPlease make sure that all parameters.\n");
@@ -216,7 +218,7 @@ int main(int argc, char *argv[]) {
 
     // Print out the User Parameters used to create the coils.
     printf("\n --- Parameters Entered: --- \n");
-    printf("turns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nRotation:\t%.3f\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",turns,innerRadius,spacing-width,startX,startY,layers,direction,rotate,width,netID,viaSize);
+    printf("Turns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nRotation:\t%.3f\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",turns,innerRadius,spacing-width,startX,startY,layers,direction,rotate,width,netID,viaSize);
     printf(" --------------------------- \n");
 
     // Print out the loading screen
