@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
     ySpaced < 0 ? angle *= -1 : angle;
 
     // Adjust the angle according to user's rotation preference
-    angle += rotate;    // In radians
+    //angle += rotate;    // In radians
     /* --- End of ANGLE --- */
 
     /* --- GENERATE COIL --- */
@@ -308,8 +308,9 @@ int main(int argc, char *argv[]) {
             coilInitY = sin(2*M_PI*x/spacing)*x;
 
             // Adjusted X & Y coordinate variables for the angle adjusted coil with spacing
-            coilFixedX = direction * (cos(angle)*coilInitX + sin(angle)*coilInitY);
-            coilFixedY = pow(-1, i) * (-sin(angle)*coilInitX + cos(angle)*coilInitY);
+            coilFixedX = direction * (cos(angle + rotate * pow(-1,i))*coilInitX + sin(angle + rotate * pow(-1,i))*coilInitY);
+            //coilFixedY = pow(-1, i) * (-sin(angle)*coilInitX + cos(angle)*coilInitY);
+            coilFixedY = (-sin(angle + M_PI_2 * (1+pow(-1,i+1)) + rotate * pow(-1,i))*coilInitX + cos(angle + M_PI_2 * (1+pow(-1,i+1))  + rotate * pow(-1,i))*coilInitY);
 
             // Correctly orient the coil on each layer to have a nice via layout
             coilAngledX = cos((layerCode)*viaAngle)*coilFixedX + sin((layerCode)*viaAngle)*coilFixedY;
@@ -413,8 +414,8 @@ int main(int argc, char *argv[]) {
 
                     outViaMult = ceilf((float)i/2);
 
-                    outViaXPos = cos(outViaMult * outViaAngle + rotate) * outViaRad;
-                    outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle + rotate) * outViaRad;
+                    outViaXPos = cos(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
+                    outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
 
                     fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", outViaXPos, outViaYPos, viaSize, netID, 0);
 
