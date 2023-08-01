@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include "./libs/TextToMath/textMath.h"
 /* --- End of IMPORTS --- */
 
 /* --- MAIN --- */
@@ -135,8 +136,8 @@ int main(int argc, char *argv[]) {
             if (direction != 1 && direction != -1) { direction = 1; }   // Failsafe for direction
 
         } else if (!strcmp(argv[i],"-r")) {
-            rotate = atof(argv[i+1]);                                   // Update the Rotate
-
+            rotate = textCalc(argv[i+1]);                               // Update the Rotate
+            // The user can enter a mathematical expression to calculate the angle using textCalc()
         } else if (!strcmp(argv[i],"-w")) {
             width = atof(argv[i+1]);                                    // Update the Width
             if (width < 0) { width = 0.25; }                            // Failsafe for width
@@ -258,10 +259,8 @@ int main(int argc, char *argv[]) {
     int layerCode;
 
     // Calculate the necessary values to position the outer vias
-    float outViaRad = ( end + viaSize + (float)1/3 );                          // Find the radius at which outer vias are positioned
+    float outViaRad = ( end + viaSize + (float)1/3 );                   // Find the radius at which outer vias are positioned
     float outViaAngle = ( ( 2 * viaSize + viaGap ) / ( outViaRad ) );   // Calculate the angle needed between each outer via
-
-    printf("\nAngle: %.2f, outViaRad: %.2f, start: %.2f, end: %.2f\n", outViaAngle, outViaRad, start, end);
 
     float outViaAdd = 0;
     float outViaMult;
@@ -275,28 +274,11 @@ int main(int argc, char *argv[]) {
         // Adjust the layer numbering for specfic end locations required per layer
         layerCode = floor( i/2 );
 
-        //  8 Layers: 0 1 2 3 4 5 6 7 (i)
-        //  outerVia: 0 0 0 1 1 2 2 3 -> floor( (i-0.5) / 2 );
-        //  oVia:     0 0 0 .5 .5 1 1 1.5 -> floor( (i-0.5) / 2 )/2;
-
-        // 0 1 2 3 4 5
-
-        // # 0 0 1 1 #
-
-        //pow(-1, i+1)*
-
         if (i == 0 || i == layers-1) {
             outViaAdd = 0;
         } else {
             outViaAdd = powf(-1,floorf( ((float)i-0.5)/2 )) * (powf(-1,i) * ceilf( ((float)i) / 2 )/2)*outViaAngle*spacing/(2*M_PI);
         }
-
-        /*i > 0 ? outViaAdd = (floorf( ((float)i-0.5) / 2 )/2)*outViaAngle*spacing/(2*M_PI) : outViaAdd;
-
-        i == layers-1 ? outViaAdd = 0 : outViaAdd;*/
-        
-
-        //printf("\nLayer: %d, outViaAdd: %.2f\n", i, outViaAdd);
         
         // Loop through each step to find the position
         for (int j = 0; j < (int)(((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step + 1); j++) {
