@@ -43,7 +43,10 @@ int main(int argc, char *argv[]) {
     if(argc % 2 == 0) {
         if (strcmp(argv[1],"-h")) {
             printf("Usage: %s flags parameters\n\r",argv[0]);
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+            printf(" --------------------------------------------- \n");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-h help\n\r");
+            printf(" --------------------------------------------- \n");
+            printf(" The order of the inputs does not matter\n\r");
             return 1;
         }
     }
@@ -62,37 +65,70 @@ int main(int argc, char *argv[]) {
     // This is footprint file to overwrite the coil into
     char* filename = "./coil_text";
 
+    // Coil mode (circular or rectangular)
+    int mode = 0;                  // Default (0) is circular
+
+    // Coil count to generate
+    int count = 1;                  // Default (1) is single coil
+
     // Amount of Turns around the center
-    float turns = 10;               // Default 10 rotations
+    float turns = 10;               // Default (10) rotations
 
     // Inner Radius of the spiral
-    float innerRadius = 0.00;       // Default 0 inner radius
+    float innerRadius = 0.00;       // Default (0) inner radius
 
     // Width of the copper trace
-    float width = 0.25;             // Default 0.25 width
+    float width = 0.25;             // Default (0.25) width
 
     // Spacing between each curl
-    float spacing = 0.25 + width;   // Default 0.25 spacing
+    float spacing = 0.25 + width;   // Default (0.25) spacing
 
     // Initial Start Coordinates
-    float startX = 0.00;            // Default X: 0.00
-    float startY = 0.00;            // Default Y: 0.00
+    float startX = 0.00;            // Default X: (0.00)
+    float startY = 0.00;            // Default Y: (0.00)
 
     // Amount of Layers
-    int layers = 1;                 // Default 1 Layer (F.Cu)
+    int layers = 1;                 // Default (1) Layer (F.Cu)
 
     // Direction of Rotation
-    int direction = 1;              // Default 1 (CounterClockWise - CCW), -1 would mean CW
+    int direction = 1;              // Default (1) (CounterClockWise - CCW), (-1) would mean CW
 
     // Rotation
-    float rotate = 0.00;            // Default 0 radians, rotates counterclockwise (units of radians. Not degrees!)
+    float rotate = 0.00;            // Default (0) radians, rotates counterclockwise (units of radians, not degrees!)
 
     // netID of the kicad_pcb file
     int netID = 0;                  // Default (net 0 "")
 
     // Via Size
-    float viaSize = 0.8;            // Defualt via size 0.8
+    float viaSize = 0.8;            // Defualt via size (0.8)
     /* --- End of CONSTANTS --- */
+
+    /* --- VARIABLES --- */
+    /* Below are the secondary coil parameters used to create a motor
+     * out of multiple coils. These parameters before are defined as an 
+     * extension to the constants above. If the user enters greater than 1
+     * for the "-c" (count) flag then some of the contsants defualts into
+     * these varaibles.
+     */
+
+    // Motor radius
+    /* motorRadius replaces the innerRadius constant. 
+     * Instead of changing the radius of each coil, the motorRadius variable changes 
+     * the radius of the motor created by set of coils arranged in a circle.
+     * Each individual coils will have an innerRadius of 0.
+     * If the user enters "-i" (innerRadius) the value will be transfered to motorRadius.
+     */
+    float motorRadius = 0.00;       // Default (0) radius
+
+    // Motor rotate
+    /* motorRotate replaces the rotate contant.
+     * Instead of changing the angle of each coil, the motorRotate variable changes
+     * the angle of the motor created by set of coils arranged in a circle.
+     * Each individual coils will have an angle of 0.
+     * If the user enters "-r" (rotate) the value will be transfered to motorRotate.
+     */
+    float motorRotate = 0.00;       // Defualt (0) radians
+    /* --- End of VARIABLES --- */
 
     /* --- ARGUMENTS --- */
     /* Iterate through each of the users arguments and make sure that the user has enetered
@@ -109,17 +145,26 @@ int main(int argc, char *argv[]) {
         if (!strcmp(argv[i],"-f")) {
             filename = argv[i+1];                                       // Update the filename
 
+        } else if (!strcmp(argv[i],"-m")) {
+            mode = atoi(argv[i+1]);                                     // Update the coil mode
+            mode < 0 ? mode = 0 : mode;                                 // Lower Boundary Failsafe
+            mode > 1 ? mode = 1 : mode;                                 // Upper Boundary Failsafe
+
+        } else if (!strcmp(argv[i],"-c")) {
+            count = atoi(argv[i+1]);                                    // Update the coil count
+            count < 1 ? count = 1 : count;                              // Failsafe for coil count
+
         } else if (!strcmp(argv[i],"-t")) {
             turns = atof(argv[i+1]);                                    // Update the Turns
-            if (turns < 1) { turns = 1; }                               // Failsafe for turns
+            turns < 1 ? turns = 1 : turns;                              // Failsafe for turns
 
         } else if (!strcmp(argv[i],"-i")) {
             innerRadius = atof(argv[i+1]);                              // Update the Inner Radius
-            if (innerRadius < 0) { innerRadius = 0; }                   // Failsafe for innerRadius
-
+            innerRadius < 0 ? innerRadius = 0 : innerRadius;            // Failsafe for innerRadius
+            
         } else if (!strcmp(argv[i],"-s")) {
             spacing = atof(argv[i+1]) + width;                          // Update the Spacing
-            if (spacing < 0) { spacing = width; }                       // Failsafe for spacing
+            spacing < 0 ? spacing = width : spacing;                    // Failsafe for spacing
 
         } else if (!strcmp(argv[i],"-x")) {
             startX = atof(argv[i+1]);                                   // Update the Start Coordinate X value
@@ -129,33 +174,45 @@ int main(int argc, char *argv[]) {
 
         } else if (!strcmp(argv[i],"-l")) {
             layers = atoi(argv[i+1]);                                   // Update the Layers
-            if (layers < 1) { layers = 1; }                             // Failsafe for layers
-
+            layers < 1 ? layers = 1 : layers;                           // Failsafe for layers
+            
         } else if (!strcmp(argv[i],"-d")) {
             direction = atoi(argv[i+1]);                                // Update the Direction
             if (direction != 1 && direction != -1) { direction = 1; }   // Failsafe for direction
 
         } else if (!strcmp(argv[i],"-r")) {
+            /* The user can enter a mathematical expression to calculate the angle using textCalc() */
             rotate = textCalc(argv[i+1]);                               // Update the Rotate
-            // The user can enter a mathematical expression to calculate the angle using textCalc()
+            
         } else if (!strcmp(argv[i],"-w")) {
             width = atof(argv[i+1]);                                    // Update the Width
-            if (width < 0) { width = 0.25; }                            // Failsafe for width
+            width < 0 ? width = 0.25 : width;                           // Failsafe for width
+            
 
         } else if (!strcmp(argv[i],"-n")) {
             netID = atoi(argv[i+1]);                                    // Update the netID
-            if (netID < 0) { netID = 0; }                               // Failsafe for netID
+            netID < 0 ? netID = 0 : netID;                              // Failsafe for netID
+            
+        } else if (!strcmp(argv[i],"-v")) {
+            viaSize = atof(argv[i+1]);                                  // Update the viaSize
+            viaSize < 0 ? viaSize = 0 : viaSize;                        // Failsafe for viaSize
 
         } else if (!strcmp(argv[i],"-h")) {
             // Print out help statement
-            printf("Usage: %s flags parameters\n\r",argv[0]);
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+            printf(" Usage: %s flags parameters\n\r",argv[0]);
+            printf(" --------------------------------------------- \n");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-h help\n\r");
+            printf(" --------------------------------------------- \n");
+            printf(" The order of the inputs does not matter\n\r");
             return 0;
         } else if (i % 2 == 1) {
             // Print out an error message
             printf("\n\rThe program has encountered an error in the parameters.\nThe program will continue with all the correct parameters.\nPlease make sure that all parameters.\n");
-            printf("Usage: %s flags parameters\n\r",argv[0]);
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\rThe order of the inputs does not matter\n\r");
+            printf(" Usage: %s flags parameters\n\r",argv[0]);
+            printf(" --------------------------------------------- \n");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-h help\n\r");
+            printf(" --------------------------------------------- \n");
+            printf(" The order of the inputs does not matter\n\r");
         }
     }
 
@@ -163,7 +220,7 @@ int main(int argc, char *argv[]) {
 
     /* --- kicad_pcb Footprint File --- */
     /* Open or create a new file in write mode to write all the segment and via coordinates.
-     * IF THE DOCUMENT ALREADY HVE DATA IN IT, IT WILL BE OVERWRITTEN.
+     * IF THE DOCUMENT ALREADY HAVE DATA IN IT, IT WILL BE OVERWRITTEN.
      */
 
     // Create a file variable
@@ -199,9 +256,17 @@ int main(int argc, char *argv[]) {
     // More than one layers require at least 2/3 ratio
     layers > 2 ? viaGap = (float)2/3 : viaGap;
 
+    // Set the innerRadius according to the coil count
+    if (count > 1) {
+        motorRadius = innerRadius;
+        innerRadius = 0.00;
+    }
+
     // Calculate the start and end factors
     float start = innerRadius + viaSize * innerVias * viaGap;    // Start Position
     float end = turns * spacing + start;    // End Position
+
+    motorRadius == 0 ? motorRadius = end : motorRadius;
     /* --- End of Start & End Positions --- */
 
     /* --- ANGLE --- */
@@ -236,21 +301,21 @@ int main(int argc, char *argv[]) {
 
     // Print out the User Parameters used to create the coils.
     printf("\n --- Parameters Entered: --- \n");
-    printf("Turns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nRotation:\t%.3f\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",turns,innerRadius,spacing-width,startX,startY,layers,direction,rotate,width,netID,viaSize);
+    printf("Mode:\t\t%d\nCount:\t\t%d\nTurns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nRotation:\t%.3f\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",mode,count,turns,innerRadius,spacing-width,startX,startY,layers,direction,rotate,width,netID,viaSize);
     printf(" --------------------------- \n");
 
     // Print out the loading screen
     printf("\n --- Generating Coils --- \n");
 
     // Step size of the coil generator
-    float step = ( (float)0.01 / (start) );
+    float step = ( (float)0.01 / (start) / turns * 2 );
 
     // Calculate the angle between the via positions for different layer combinations
     float viaAngle = ( 2*M_PI ) / ( innerVias );
 
     // Initialize the Position Arrays
-    float xPos[layers][(int)((end+(layers-1)*viaAngle*(spacing)/(2*M_PI)-start)/step + 1)];
-    float yPos[layers][(int)((end+(layers-1)*viaAngle*(spacing)/(2*M_PI)-start)/step + 1)];
+    float xPos[count][layers][(int)((end+(layers-1)*viaAngle*(spacing)/(2*M_PI)-start)/step + 1)];
+    float yPos[count][layers][(int)((end+(layers-1)*viaAngle*(spacing)/(2*M_PI)-start)/step + 1)];
 
     // Dummy variables for the loop
     float x, coilInitX, coilInitY, coilFixedX, coilFixedY, coilAngledX, coilAngledY;
@@ -265,47 +330,56 @@ int main(int argc, char *argv[]) {
     float outViaAdd = 0;
     float outViaMult;
 
-    // Iterate through each copper layer
-    for (int i = 0; i < layers; i++) {
+    for (int k = 0; k < count; k++) {
+        printf("Coil: %d ...\n", k);
 
-        // Print out progress tag
-        printf("Progress:\e[s");
+        startX = motorRadius*sin(M_PI*k);
+        startY = motorRadius*cos(M_PI*k);
 
-        // Adjust the layer numbering for specfic end locations required per layer
-        layerCode = floor( i/2 );
+        printf("\nStartX: %.2f, StartY: %.2f, motorRadius: %.2f\n", startX, startY, motorRadius);
 
-        if (i == 0 || i == layers-1) {
-            outViaAdd = 0;
-        } else {
-            outViaAdd = powf(-1,floorf( ((float)i-0.5)/2 )) * (powf(-1,i) * ceilf( ((float)i) / 2 )/2)*outViaAngle*spacing/(2*M_PI);
+        // Iterate through each copper layer
+        for (int i = 0; i < layers; i++) {
+
+            // Print out progress tag
+            printf(" - Progress:\e[s");
+
+            // Adjust the layer numbering for specfic end locations required per layer
+            layerCode = floor( i/2 );
+
+            if (i == 0 || i == layers-1) {
+                outViaAdd = 0;
+            } else {
+                outViaAdd = powf(-1,floorf( ((float)i-0.5)/2 )) * (powf(-1,i) * ceilf( ((float)i) / 2 )/2)*outViaAngle*spacing/(2*M_PI);
+            }
+            
+            // Loop through each step to find the position
+            for (int j = 0; j < (int)(((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step + 1); j++) {
+
+                x = j*step + start;   // Respective position (can think of it as x variable in a calculator while plotting this.)
+
+                // X & Y coordinate variables for the initial coil with spacing
+                coilInitX = cos(2*M_PI*x/spacing)*x;
+                coilInitY = sin(2*M_PI*x/spacing)*x;
+
+                // Adjusted X & Y coordinate variables for the angle adjusted coil with spacing
+                coilFixedX = direction * (cos(angle + rotate * pow(-1,i))*coilInitX + sin(angle + rotate * pow(-1,i))*coilInitY);
+                //coilFixedY = pow(-1, i) * (-sin(angle)*coilInitX + cos(angle)*coilInitY);
+                coilFixedY = (-sin(angle + M_PI_2 * (1+pow(-1,i+1)) + rotate * pow(-1,i))*coilInitX + cos(angle + M_PI_2 * (1+pow(-1,i+1))  + rotate * pow(-1,i))*coilInitY);
+
+                // Correctly orient the coil on each layer to have a nice via layout
+                coilAngledX = cos((layerCode)*viaAngle)*coilFixedX + sin((layerCode)*viaAngle)*coilFixedY;
+                coilAngledY = -sin((layerCode)*viaAngle)*coilFixedX + cos((layerCode)*viaAngle)*coilFixedY;
+
+                // Store the final X & Y coordinates plus initial position coordinate.
+                xPos[k][i][j] = coilAngledX + startX;
+                yPos[k][i][j] = coilAngledY + startY;
+
+                // Print out the progress
+                printf(" %d %2d (%.2f%%)\e[u", i+1, j, roundf(((float) j / (((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step + 1)) * 100));
+            }
+            printf("\n");
         }
-        
-        // Loop through each step to find the position
-        for (int j = 0; j < (int)(((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step + 1); j++) {
-
-            x = j*step + start;   // Respective position (can think of it as x variable in a calculator while plotting this.)
-
-            // X & Y coordinate variables for the initial coil with spacing
-            coilInitX = cos(2*M_PI*x/spacing)*x;
-            coilInitY = sin(2*M_PI*x/spacing)*x;
-
-            // Adjusted X & Y coordinate variables for the angle adjusted coil with spacing
-            coilFixedX = direction * (cos(angle + rotate * pow(-1,i))*coilInitX + sin(angle + rotate * pow(-1,i))*coilInitY);
-            //coilFixedY = pow(-1, i) * (-sin(angle)*coilInitX + cos(angle)*coilInitY);
-            coilFixedY = (-sin(angle + M_PI_2 * (1+pow(-1,i+1)) + rotate * pow(-1,i))*coilInitX + cos(angle + M_PI_2 * (1+pow(-1,i+1))  + rotate * pow(-1,i))*coilInitY);
-
-            // Correctly orient the coil on each layer to have a nice via layout
-            coilAngledX = cos((layerCode)*viaAngle)*coilFixedX + sin((layerCode)*viaAngle)*coilFixedY;
-            coilAngledY = -sin((layerCode)*viaAngle)*coilFixedX + cos((layerCode)*viaAngle)*coilFixedY;
-
-            // Store the final X & Y coordinates plus initial position coordinate.
-            xPos[i][j] = coilAngledX + startX;
-            yPos[i][j] = coilAngledY + startY;
-
-            // Print out the progress
-            printf(" %d %2d (%.2f%%)\e[u", i+1, j, roundf(((float) j / (((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step + 1)) * 100));
-        }
-        printf("\n");
     }
 
     printf(" ------------------------ \n");
@@ -319,123 +393,140 @@ int main(int argc, char *argv[]) {
      * into the file using the KiCAD footprint format.
      */
 
+    float outerRadius = 0;
+
     // Print out the loading screen
     printf("\n --- Writing into File --- \n");
 
-    // Iterate through each copper layer
-    for (int i = 0; i < layers; i++) {
-        // Print out progress tag
-        printf("Progress:\e[s");
+    for (int k = 0; k < count; k++) {
+        printf("Coil: %d ...\n", k);
 
-        // Adjust the layer numbering for specfic end locations required per layer
-        layerCode = floor( i/2 );
-
-        if (i == 0 || i == layers-1) {
-            outViaAdd = 0;
-        } else {
-            outViaAdd = powf(-1,floorf( ((float)i-0.5)/2 )) * (powf(-1,i) * ceilf( ((float)i) / 2 )/2)*outViaAngle*spacing/(2*M_PI);
-        }
-
-        // Iterate through each position on the coil
-        for (int j = 0; j < (int)(((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step); j++) {
-            // Print out the wire segments according to KiCAD Footprint File.
-
-            // Check for copper layers
-            if (i == 0) {
-                fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"F.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, netID, j, i);
-            } else if (i == layers-1) {
-                fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"B.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, netID, j, i);
-            } else {
-                fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[i][j], yPos[i][j], xPos[i][j+1], yPos[i][j+1], width, i, netID, j, i);
-            }
-            // Print out the progress
-            printf(" %d %2d (%.2f%%)\e[u", i+1, j, roundf(((float) j / (((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step)) * 100));
-        }
-        printf("\n");
-    }
-
-    // Create a unit vector pointing to the via locations
-    float unitVector[2] = {xPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2))), yPos[0][0]/(sqrt(powf(xPos[0][0],2) + powf(yPos[0][0],2)))};
-
-    // Create vias at specific locations while biasing the location towards the center of the coil
-    if (layers == 1) { 
-        // Add a via adjusted using the unit vector
-        fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[0][0] + ( unitVector[0] * (-viaSize/2 + width/2) ), yPos[0][0] + ( unitVector[1] * (-viaSize/2 + width/2) ), viaSize, netID, 0);
-
-    } else {
+        // Iterate through each copper layer
         for (int i = 0; i < layers; i++) {
-            // Add vias
-            if ((i+1) % 2) {
-                // Adjust the unit vector for the new via position
-                unitVector[0] = xPos[i][0]/(sqrt(powf(xPos[i][0],2) + powf(yPos[i][0],2)));
-                unitVector[1] = yPos[i][0]/(sqrt(powf(xPos[i][0],2) + powf(yPos[i][0],2)));
+            // Print out progress tag
+            printf(" - Progress:\e[s");
 
-                // Adjust the via position using the new unit vector
-                fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[i][0] + ( unitVector[0] * (-viaSize*3/4 + width/2) ), yPos[i][0] + ( unitVector[1] * (-viaSize*3/4 + width/2) ), viaSize, netID, 0);
+            // Adjust the layer numbering for specfic end locations required per layer
+            layerCode = floor( i/2 );
+
+            int fix = 0;
+
+            if (i == 0 || i == layers-1) {
+                outViaAdd = 0;
+                fix = 0;
+            } else {
+                outViaAdd = powf(-1,floorf( ((float)i-0.5)/2 )) * (powf(-1,i) * ceilf( ((float)i) / 2 )/2)*outViaAngle*spacing/(2*M_PI);
+                fix = -1;
             }
+
+            // Iterate through each position on the coil
+            for (int j = 0; j < (int)(((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step)+fix; j++) {
+                // Print out the wire segments according to KiCAD Footprint File.
+
+                // Check for copper layers
+                if (i == 0) {
+                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"F.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, netID, k, j, i);
+                } else if (i == layers-1) {
+                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"B.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, netID, k, j, i);
+                } else {
+                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, i, netID, k, j, i);
+                }
+                // Print out the progress
+                printf(" %d %2d (%.2f%%)\e[u", i+1, j, roundf(((float) j / (((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step)) * 100));
+            }
+            printf("\n");
         }
 
-        // More than 2 layers requires vias outside the coil for connection
-        if (layers > 2) {
+        // Create a unit vector pointing to the via locations
+        float unitVector[2] = {xPos[k][0][0]/(sqrt(powf(xPos[k][0][0],2) + powf(yPos[k][0][0],2))), yPos[k][0][0]/(sqrt(powf(xPos[k][0][0],2) + powf(yPos[k][0][0],2)))};
 
-            // Dummy variables for outer via positions
-            float outViaXPos, outViaYPos;
+        // Create vias at specific locations while biasing the location towards the center of the coil
+        if (layers == 1) { 
+            // Add a via adjusted using the unit vector
+            fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[k][0][0] + ( unitVector[0] * (-viaSize/2 + width/2) ), yPos[k][0][0] + ( unitVector[1] * (-viaSize/2 + width/2) ), viaSize, netID, 0);
 
-            // Check if there are even or odd numbered Outer Vias
-            if (outerVias % 2) {
-                // ODD number of outer vias
+        } else {
+            for (int i = 0; i < layers; i++) {
+                // Add vias
+                if ((i+1) % 2) {
+                    // Adjust the unit vector for the new via position
+                    unitVector[0] = xPos[k][i][0]/(sqrt(powf(xPos[k][i][0],2) + powf(yPos[k][i][0],2)));
+                    unitVector[1] = yPos[k][i][0]/(sqrt(powf(xPos[k][i][0],2) + powf(yPos[k][i][0],2)));
 
-                // # 0 0 1 1 2 2 #
-
-                // 0 1 2 3 4 5 6 7
-
-                //i * 2 + 1
-                //i * 2 + 2
-
-                for (int i = 0; i < outerVias; i++) {
-
-                    outViaMult = ceilf((float)i/2);
-
-                    outViaXPos = cos(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
-                    outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
-
-                    fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", outViaXPos, outViaYPos, viaSize, netID, 0);
-
-                    int sizeOne = (int)(((end+pow(-1, (i * 2 + 1))*(floor( (i * 2 + 1)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 1)-0.5)/2 )) * (powf(-1,(i * 2 + 1)) * ceilf( ((float)(i * 2 + 1)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
-                    int sizeTwo = (int)(((end+pow(-1, (i * 2 + 2))*(floor( (i * 2 + 2)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 2)-0.5)/2 )) * (powf(-1,(i * 2 + 2)) * ceilf( ((float)(i * 2 + 2)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
-
-                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[ (i * 2 + 1) ][sizeOne-1], yPos[ (i * 2 + 1) ][sizeOne-1], outViaXPos, outViaYPos, width, (i * 2 + 1), netID, i+(i * 2 + 1), i);
-                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[ (i * 2 + 2) ][sizeTwo-1], yPos[ (i * 2 + 2) ][sizeTwo-1], outViaXPos, outViaYPos, width, (i * 2 + 2), netID, i+(i * 2 + 2), i);
+                    // Adjust the via position using the new unit vector
+                    fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[k][i][0] + ( unitVector[0] * (-viaSize*3/4 + width/2) ), yPos[k][i][0] + ( unitVector[1] * (-viaSize*3/4 + width/2) ), viaSize, netID, 0);
                 }
-            } else {
-                // EVEN number of outer vias
+            }
 
-                // # 0 0 1 #
+            // More than 2 layers requires vias outside the coil for connection
+            if (layers > 2) {
 
-                // 0 1 2 3 4
+                // Dummy variables for outer via positions
+                float outViaXPos, outViaYPos;
 
-                for (int i = 0; i < outerVias; i++) {
-                    
-                    outViaMult = floorf((float)i/2) + 0.5;
+                // Check if there are even or odd numbered Outer Vias
+                if (outerVias % 2) {
+                    // ODD number of outer vias
 
-                    outViaXPos = cos(outViaMult * outViaAngle + rotate) * outViaRad;
-                    outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle + rotate) * outViaRad;
+                    // # 0 0 1 1 2 2 #
 
-                    fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", outViaXPos, outViaYPos, viaSize, netID, 0);
+                    // 0 1 2 3 4 5 6 7
 
-                    int sizeOne = (int)(((end+pow(-1, (i * 2 + 1))*(floor( (i * 2 + 1)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 1)-0.5)/2 )) * (powf(-1,(i * 2 + 1)) * ceilf( ((float)(i * 2 + 1)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
-                    int sizeTwo = (int)(((end+pow(-1, (i * 2 + 2))*(floor( (i * 2 + 2)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 2)-0.5)/2 )) * (powf(-1,(i * 2 + 2)) * ceilf( ((float)(i * 2 + 2)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
+                    //i * 2 + 1
+                    //i * 2 + 2
 
-                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[ (i * 2 + 1) ][sizeOne-1], yPos[ (i * 2 + 1) ][sizeOne-1], outViaXPos, outViaYPos, width, (i * 2 + 1), netID, i+(i * 2 + 1), i);
-                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[ (i * 2 + 2) ][sizeTwo-1], yPos[ (i * 2 + 2) ][sizeTwo-1], outViaXPos, outViaYPos, width, (i * 2 + 2), netID, i+(i * 2 + 2), i);
+                    for (int i = 0; i < outerVias; i++) {
 
+                        outViaMult = ceilf((float)i/2);
+
+                        outViaXPos = cos(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
+                        outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
+
+                        fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", outViaXPos, outViaYPos, viaSize, netID, 0);
+
+                        int sizeOne = (int)(((end+pow(-1, (i * 2 + 1))*(floor( (i * 2 + 1)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 1)-0.5)/2 )) * (powf(-1,(i * 2 + 1)) * ceilf( ((float)(i * 2 + 1)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
+                        int sizeTwo = (int)(((end+pow(-1, (i * 2 + 2))*(floor( (i * 2 + 2)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 2)-0.5)/2 )) * (powf(-1,(i * 2 + 2)) * ceilf( ((float)(i * 2 + 2)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
+
+                        fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[k][ (i * 2 + 1) ][sizeOne-2], yPos[k][ (i * 2 + 1) ][sizeOne-2], outViaXPos, outViaYPos, width, (i * 2 + 1), netID, k*i+(i * 2 + 1), i);
+                        fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[k][ (i * 2 + 2) ][sizeTwo-2], yPos[k][ (i * 2 + 2) ][sizeTwo-2], outViaXPos, outViaYPos, width, (i * 2 + 2), netID, k*i+(i * 2 + 2), i);
+                    }
+
+                    outerRadius = sqrt(pow(outViaXPos,2)+pow(outViaYPos,2))+viaSize/2;
+                } else {
+                    // EVEN number of outer vias
+
+                    // # 0 0 1 #
+
+                    // 0 1 2 3 4
+
+                    for (int i = 0; i < outerVias; i++) {
+                        
+                        outViaMult = floorf((float)i/2) + 0.5;
+
+                        outViaXPos = cos(outViaMult * outViaAngle + rotate) * outViaRad;
+                        outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle + rotate) * outViaRad;
+
+                        fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", outViaXPos, outViaYPos, viaSize, netID, 0);
+
+                        int sizeOne = (int)(((end+pow(-1, (i * 2 + 1))*(floor( (i * 2 + 1)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 1)-0.5)/2 )) * (powf(-1,(i * 2 + 1)) * ceilf( ((float)(i * 2 + 1)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
+                        int sizeTwo = (int)(((end+pow(-1, (i * 2 + 2))*(floor( (i * 2 + 2)/2 ))*viaAngle*(spacing)/(2*M_PI) + powf(-1,floorf( ((float)(i * 2 + 2)-0.5)/2 )) * (powf(-1,(i * 2 + 2)) * ceilf( ((float)(i * 2 + 2)) / 2 )/2)*outViaAngle*spacing/(2*M_PI))-start)/step + 1);
+
+                        fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[k][ (i * 2 + 1) ][sizeOne-2], yPos[k][ (i * 2 + 1) ][sizeOne-2], outViaXPos, outViaYPos, width, (i * 2 + 1), netID, i+(i * 2 + 1), i);
+                        fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-1beaaa%dba%d))\n", xPos[k][ (i * 2 + 2) ][sizeTwo-2], yPos[k][ (i * 2 + 2) ][sizeTwo-2], outViaXPos, outViaYPos, width, (i * 2 + 2), netID, i+(i * 2 + 2), i);
+
+                    }
+
+                    outerRadius = sqrt(pow(outViaXPos,2)+pow(outViaYPos,2))+viaSize/2;
                 }
             }
         }
     }
+
+    (int)outerRadius == 0 ? outerRadius = end : outerRadius;
 
     printf(" ------------------------- \n");
-    printf("End of writing.\n\n\r");
+    printf("End of writing.\n\r");
+    printf("\nThe total radius of the coil is: %.2f (system units)\n\n\r", outerRadius);
     /* --- End of WRITE --- */
 
     /* --- DISPLAY --- */
