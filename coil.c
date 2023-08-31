@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
     float start = innerRadius + viaSize * innerVias * viaGap;    // Start Position
     float end = turns * spacing + start;    // End Position
 
-    motorRadius == 0 ? motorRadius = end : motorRadius;
+    //motorRadius == 0 ? motorRadius = end : motorRadius;
     /* --- End of Start & End Positions --- */
 
     /* --- ANGLE --- */
@@ -330,13 +330,28 @@ int main(int argc, char *argv[]) {
     float outViaAdd = 0;
     float outViaMult;
 
+    // Calculate the offset angle for each coil in the motor
+    float motorAngle = 2*M_PI/count;
+
+    // Calculate the new motorRadius accounting the spacing between coils 
+    motorRadius += end/cos( ( M_PI - (motorAngle) )/2 ) + spacing;
+
+    count > 1 ? motorRotate = rotate : motorRotate;
+
+    // Repeat for each coil
     for (int k = 0; k < count; k++) {
-        printf("Coil: %d ...\n", k);
+        printf("Coil: %d ...\n", k+1);
 
-        startX = motorRadius*sin(M_PI*k);
-        startY = motorRadius*cos(M_PI*k);
+        // Adjust the starting coordinates for each Coil
+        startX = cos(motorRotate) * motorRadius*cos(motorAngle * (k+1)) + sin(motorRotate)*motorRadius*sin(motorAngle * (k+1));
+        startY = -sin(motorRotate) * motorRadius*cos(motorAngle * (k+1)) + cos(motorRotate) * motorRadius*sin(motorAngle * (k+1));
 
-        printf("\nStartX: %.2f, StartY: %.2f, motorRadius: %.2f\n", startX, startY, motorRadius);
+        float endX = motorRadius*cos(motorAngle * (count));
+        float endY = motorRadius*sin(motorAngle * (count));
+
+        rotate = acos(round( (startX * endX + startY * endY) / ( sqrt( pow(startX,2) + pow(startY,2) ) * sqrt( pow(endX,2) + pow(endY,2) ) )*1000 )/1000);
+
+        startY > 0 ? rotate = -rotate : rotate;
 
         // Iterate through each copper layer
         for (int i = 0; i < layers; i++) {
@@ -347,6 +362,7 @@ int main(int argc, char *argv[]) {
             // Adjust the layer numbering for specfic end locations required per layer
             layerCode = floor( i/2 );
 
+            // Only need vias for the in-between layers
             if (i == 0 || i == layers-1) {
                 outViaAdd = 0;
             } else {
@@ -399,7 +415,7 @@ int main(int argc, char *argv[]) {
     printf("\n --- Writing into File --- \n");
 
     for (int k = 0; k < count; k++) {
-        printf("Coil: %d ...\n", k);
+        printf("Coil: %d ...\n", k+1);
 
         // Iterate through each copper layer
         for (int i = 0; i < layers; i++) {
@@ -437,8 +453,19 @@ int main(int argc, char *argv[]) {
             printf("\n");
         }
 
+        // Adjust the starting coordinates for each Coil
+        startX = cos(motorRotate) * motorRadius*cos(motorAngle * (k+1)) + sin(motorRotate)*motorRadius*sin(motorAngle * (k+1));
+        startY = -sin(motorRotate) * motorRadius*cos(motorAngle * (k+1)) + cos(motorRotate) * motorRadius*sin(motorAngle * (k+1));
+
+        float endX = motorRadius*cos(motorAngle * (count));
+        float endY = motorRadius*sin(motorAngle * (count));
+
+        rotate = acos(round( (startX * endX + startY * endY) / ( sqrt( pow(startX,2) + pow(startY,2) ) * sqrt( pow(endX,2) + pow(endY,2) ) )*1000 )/1000);
+
+        startY > 0 ? rotate = -rotate : rotate;
+
         // Create a unit vector pointing to the via locations
-        float unitVector[2] = {xPos[k][0][0]/(sqrt(powf(xPos[k][0][0],2) + powf(yPos[k][0][0],2))), yPos[k][0][0]/(sqrt(powf(xPos[k][0][0],2) + powf(yPos[k][0][0],2)))};
+        float unitVector[2] = {(xPos[k][0][0]- startX)/(sqrt(powf(xPos[k][0][0]- startX,2) + powf(yPos[k][0][0]- startY,2))), (yPos[k][0][0]- startY)/(sqrt(powf(xPos[k][0][0]- startX,2) + powf(yPos[k][0][0]- startY,2)))};
 
         // Create vias at specific locations while biasing the location towards the center of the coil
         if (layers == 1) { 
@@ -450,8 +477,8 @@ int main(int argc, char *argv[]) {
                 // Add vias
                 if ((i+1) % 2) {
                     // Adjust the unit vector for the new via position
-                    unitVector[0] = xPos[k][i][0]/(sqrt(powf(xPos[k][i][0],2) + powf(yPos[k][i][0],2)));
-                    unitVector[1] = yPos[k][i][0]/(sqrt(powf(xPos[k][i][0],2) + powf(yPos[k][i][0],2)));
+                    unitVector[0] = (xPos[k][i][0]- startX)/(sqrt(powf(xPos[k][i][0]- startX,2) + powf(yPos[k][i][0]- startY,2)));
+                    unitVector[1] = (yPos[k][i][0]- startY)/(sqrt(powf(xPos[k][i][0]- startX,2) + powf(yPos[k][i][0]- startY,2)));
 
                     // Adjust the via position using the new unit vector
                     fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", xPos[k][i][0] + ( unitVector[0] * (-viaSize*3/4 + width/2) ), yPos[k][i][0] + ( unitVector[1] * (-viaSize*3/4 + width/2) ), viaSize, netID, 0);
@@ -479,8 +506,8 @@ int main(int argc, char *argv[]) {
 
                         outViaMult = ceilf((float)i/2);
 
-                        outViaXPos = cos(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
-                        outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad;
+                        outViaXPos = cos(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad + startX;
+                        outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle - rotate * pow(-1, i)) * outViaRad + startY;
 
                         fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", outViaXPos, outViaYPos, viaSize, netID, 0);
 
@@ -503,8 +530,8 @@ int main(int argc, char *argv[]) {
                         
                         outViaMult = floorf((float)i/2) + 0.5;
 
-                        outViaXPos = cos(outViaMult * outViaAngle + rotate) * outViaRad;
-                        outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle + rotate) * outViaRad;
+                        outViaXPos = cos(outViaMult * outViaAngle + rotate) * outViaRad + startX;
+                        outViaYPos = pow(-1, i) * sin(outViaMult * outViaAngle + rotate) * outViaRad + startY;
 
                         fprintf(fp,"(via (at %f %f) (size %.1f) (drill 0.4) (layers \"F.Cu\" \"B.Cu\") (free) (net %d) (tstamp e5f06cd2-492e-41b2-8ded-13a3fa1042b%d))\n", outViaXPos, outViaYPos, viaSize, netID, 0);
 
@@ -526,7 +553,8 @@ int main(int argc, char *argv[]) {
 
     printf(" ------------------------- \n");
     printf("End of writing.\n\r");
-    printf("\nThe total radius of the coil is: %.2f (system units)\n\n\r", outerRadius);
+    printf("\nThe total radius of the coil is: %.2f (system units)\n\r", outerRadius);
+    printf("The total motor radius is: %.2f (system units)\n\n\r", motorRadius);
     /* --- End of WRITE --- */
 
     /* --- DISPLAY --- */
