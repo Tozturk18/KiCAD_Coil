@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[1],"-h")) {
             printf("Usage: %s flags parameters\n\r",argv[0]);
             printf(" --------------------------------------------- \n");
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-h help\n\r");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-p resolution\t(Default 0.01, lower better but slower)\n\t-h help\n\r");
             printf(" --------------------------------------------- \n");
             printf(" The order of the inputs does not matter\n\r");
             return 1;
@@ -100,15 +100,18 @@ int main(int argc, char *argv[]) {
     int netID = 0;                  // Default (net 0 "")
 
     // Via Size
-    float viaSize = 0.8;            // Defualt via size (0.8)
+    float viaSize = 0.8;            // Default via size (0.8)
+
+    // Resolution of the coil gen
+    float resolution = 0.01;        // Default (0.01) resolution, lower is better, but slower
     /* --- End of CONSTANTS --- */
 
     /* --- VARIABLES --- */
     /* Below are the secondary coil parameters used to create a motor
      * out of multiple coils. These parameters before are defined as an 
      * extension to the constants above. If the user enters greater than 1
-     * for the "-c" (count) flag then some of the contsants defualts into
-     * these varaibles.
+     * for the "-c" (count) flag then some of the constants defaults into
+     * these variables.
      */
 
     // Motor radius
@@ -116,24 +119,24 @@ int main(int argc, char *argv[]) {
      * Instead of changing the radius of each coil, the motorRadius variable changes 
      * the radius of the motor created by set of coils arranged in a circle.
      * Each individual coils will have an innerRadius of 0.
-     * If the user enters "-i" (innerRadius) the value will be transfered to motorRadius.
+     * If the user enters "-i" (innerRadius) the value will be transferred to motorRadius.
      */
     float motorRadius = 0.00;       // Default (0) radius
 
     // Motor rotate
-    /* motorRotate replaces the rotate contant.
+    /* motorRotate replaces the rotate constant.
      * Instead of changing the angle of each coil, the motorRotate variable changes
      * the angle of the motor created by set of coils arranged in a circle.
      * Each individual coils will have an angle of 0.
-     * If the user enters "-r" (rotate) the value will be transfered to motorRotate.
+     * If the user enters "-r" (rotate) the value will be transferred to motorRotate.
      */
-    float motorRotate = 0.00;       // Defualt (0) radians
+    float motorRotate = 0.00;       // Default (0) radians
     /* --- End of VARIABLES --- */
 
     /* --- ARGUMENTS --- */
-    /* Iterate through each of the users arguments and make sure that the user has enetered
-     * the arguments using the appopriate flags. The order of the flag and parameter pair does not matter.
-     * The user can enter any flag followed by the appopriate parameter in any order.
+    /* Iterate through each of the users arguments and make sure that the user has entered
+     * the arguments using the appropriate flags. The order of the flag and parameter pair does not matter.
+     * The user can enter any flag followed by the appropriate parameter in any order.
      * For example: ./coil.o -w 0.5 -i 10 -f Spiral.kicad_pcb
      * This will create a coil with default parameters except with 0.5 width (whichever unit KiCAD is using),
      * 10 inner radius, and write the results to a file called Spiral.kicad_pcb.
@@ -197,11 +200,16 @@ int main(int argc, char *argv[]) {
             viaSize = atof(argv[i+1]);                                  // Update the viaSize
             viaSize < 0 ? viaSize = 0 : viaSize;                        // Failsafe for viaSize
 
+        } else if (!strcmp(argv[i],"-p")) {
+            resolution = atof(argv[i+1]);                               // Update the resolution
+            resolution < 0.01 ? resolution = 0.01 : resolution;         // Failsafe for resolution
+            resolution > 1 ? resolution = 1 : resolution;               // Failsafe for resolution
+
         } else if (!strcmp(argv[i],"-h")) {
             // Print out help statement
             printf(" Usage: %s flags parameters\n\r",argv[0]);
             printf(" --------------------------------------------- \n");
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-h help\n\r");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-p resolution\t(Default 0.01, lower better but slower)\n\t-h help\n\r");
             printf(" --------------------------------------------- \n");
             printf(" The order of the inputs does not matter\n\r");
             return 0;
@@ -210,7 +218,7 @@ int main(int argc, char *argv[]) {
             printf("\n\rThe program has encountered an error in the parameters.\nThe program will continue with all the correct parameters.\nPlease make sure that all parameters.\n");
             printf(" Usage: %s flags parameters\n\r",argv[0]);
             printf(" --------------------------------------------- \n");
-            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-h help\n\r");
+            printf("\t-f file_address\t(Default ./coil_text)\n\t-m mode\t\t(Default 0)\n\t-c count\t(Default 1)\n\t-t turns\t(Default 10)\n\t-i innerRadius\t(Default 0)\n\t-s spacing\t(Default 0.25)\n\t-x start_X\t(Default 0)\n\t-y start_Y\t(Default 0)\n\t-l layers\t(Default 1)\n\t-d direction(±1)(Default 1)\n\t-r rotation\t(Default 0 radians)\n\t-w width\t(Default 0.25)\n\t-n netID\t(Default 0)\n\t-v viaSize\t(Default 0.8)\n\t-p resolution\t(Default 0.01, lower better but slower)\n\t-h help\n\r");
             printf(" --------------------------------------------- \n");
             printf(" The order of the inputs does not matter\n\r");
         }
@@ -301,14 +309,14 @@ int main(int argc, char *argv[]) {
 
     // Print out the User Parameters used to create the coils.
     printf("\n --- Parameters Entered: --- \n");
-    printf("Mode:\t\t%d\nCount:\t\t%d\nTurns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nRotation:\t%.3f\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\n\r",mode,count,turns,innerRadius,spacing-width,startX,startY,layers,direction,rotate,width,netID,viaSize);
+    printf("Mode:\t\t%d\nCount:\t\t%d\nTurns:\t\t%.3f\nInner Radius:\t%.3f\nSpacing:\t%.3f\nStart_X:\t%.3f\nStart_Y:\t%.3f\nLayers:\t\t%d\nDirection:\t%d\nRotation:\t%.3f\nWidth:\t\t%.3f\nnetID:\t\t%d\nviaSize:\t%.3f\nresolution:\t%.3f\n\r",mode,count,turns,innerRadius,spacing-width,startX,startY,layers,direction,rotate,width,netID,viaSize,resolution);
     printf(" --------------------------- \n");
 
     // Print out the loading screen
     printf("\n --- Generating Coils --- \n");
 
     // Step size of the coil generator
-    float step = ( (float)0.01 / (start) / turns * 2 );
+    float step = ( (float)resolution / (start) / turns * 2 );
 
     // Calculate the angle between the via positions for different layer combinations
     float viaAngle = ( 2*M_PI ) / ( innerVias );
@@ -334,7 +342,7 @@ int main(int argc, char *argv[]) {
     float motorAngle = 2*M_PI/count;
 
     // Calculate the new motorRadius accounting the spacing between coils 
-    motorRadius += end/cos( ( M_PI - (motorAngle) )/2 ) + spacing;
+    count > 1 ? motorRadius += end/cos( ( M_PI - (motorAngle) )/2 ) + spacing : motorRadius;
 
     count > 1 ? motorRotate = rotate : motorRotate;
 
@@ -346,10 +354,11 @@ int main(int argc, char *argv[]) {
         startX = cos(motorRotate) * motorRadius*cos(motorAngle * (k+1)) + sin(motorRotate)*motorRadius*sin(motorAngle * (k+1));
         startY = -sin(motorRotate) * motorRadius*cos(motorAngle * (k+1)) + cos(motorRotate) * motorRadius*sin(motorAngle * (k+1));
 
-        float endX = motorRadius*cos(motorAngle * (count));
-        float endY = motorRadius*sin(motorAngle * (count));
+        float endX = motorRadius*cos(motorAngle * (count)) + startX + end;
+        float endY = motorRadius*sin(motorAngle * (count)) + startY + end;
 
-        rotate = acos(round( (startX * endX + startY * endY) / ( sqrt( pow(startX,2) + pow(startY,2) ) * sqrt( pow(endX,2) + pow(endY,2) ) )*1000 )/1000);
+        // Removed due to division by zero error, needs fixing
+        //rotate = acos(round( (startX * endX + startY * endY) / ( sqrt( pow(startX,2) + pow(startY,2) ) * sqrt( pow(endX,2) + pow(endY,2) ) )*1000 )/1000);
 
         startY > 0 ? rotate = -rotate : rotate;
 
@@ -359,7 +368,7 @@ int main(int argc, char *argv[]) {
             // Print out progress tag
             printf(" - Progress:\e[s");
 
-            // Adjust the layer numbering for specfic end locations required per layer
+            // Adjust the layer numbering for specific end locations required per layer
             layerCode = floor( i/2 );
 
             // Only need vias for the in-between layers
@@ -422,7 +431,7 @@ int main(int argc, char *argv[]) {
             // Print out progress tag
             printf(" - Progress:\e[s");
 
-            // Adjust the layer numbering for specfic end locations required per layer
+            // Adjust the layer numbering for specific end locations required per layer
             layerCode = floor( i/2 );
 
             int fix = 0;
@@ -441,11 +450,11 @@ int main(int argc, char *argv[]) {
 
                 // Check for copper layers
                 if (i == 0) {
-                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"F.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, netID, k, j, i);
+                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"F.Cu\") (net %d) (uuid 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, netID, k, j, i);
                 } else if (i == layers-1) {
-                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"B.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, netID, k, j, i);
+                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"B.Cu\") (net %d) (uuid 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, netID, k, j, i);
                 } else {
-                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (tstamp 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, i, netID, k, j, i);
+                    fprintf(fp, "(segment (start %f %f) (end %f %f) (width %f) (layer \"In%d.Cu\") (net %d) (uuid 4efbfedb-0d6a-488e-863f-%dbeaaa%dba%d))\n", xPos[k][i][j], yPos[k][i][j], xPos[k][i][j+1], yPos[k][i][j+1], width, i, netID, k, j, i);
                 }
                 // Print out the progress
                 printf(" %d %2d (%.2f%%)\e[u", i+1, j, roundf(((float) j / (((end+pow(-1, i)*(layerCode)*viaAngle*(spacing)/(2*M_PI) + outViaAdd)-start)/step)) * 100));

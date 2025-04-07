@@ -11,7 +11,14 @@ ifeq ($(shell uname),tozturk)
 	LDFLAGS += -Wl,-no_compact_unwind
 endif
 
-.PHONY: all clean
+.PHONY: all clean rebuild
+
+rebuild: clean all
+	@echo "Rebuilding $(TARGET)..."
+	@echo "Compiling $(TARGET)..."
+	@echo "Linking $(TARGET)..."
+	@echo "Done."
+OBJS = $(SRCS:.c) $(LIBS:.c=.o)
 
 all: $(TARGET)
 
